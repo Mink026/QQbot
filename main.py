@@ -1,6 +1,18 @@
-def main():
-    print("Hello from qqbot!")
+import asyncio
+
+from websockets.asyncio.server import serve
+
+
+async def handler(websocket):
+    while True:
+        message = await websocket.recv()
+        print(message)
+
+
+async def main():
+    async with serve(handler, "0.0.0.0", 22222) as server:
+        await server.serve_forever()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
