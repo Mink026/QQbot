@@ -1,32 +1,51 @@
 import asyncio
 import json
-import websockets
+from websockets.asyncio.client import connect
+from config import BOT_TOKEN, NAPCAT_WS_URL
 
 
-# 正向 WS（连接 NapCat）
-async def connect_napcat():
-    uri = "ws://127.0.0.1:3002"
-
-    async with websockets.connect(uri) as ws:
-        print("已连接 NapCat")
-
-        async for message in ws:
-            event = json.loads(message)
-
-            if event.get("post_type") == "message":
-                group_id = event.get("group_id")
-                text = event.get("raw_message")
-                print(f"收到消息: {text}")
-
-                # 回复
-                await ws.send(json.dumps({
-                    "action": "send_group_msg",
-                    "params": {
-                        "group_id": group_id,
-                        "message": f"收到: {text}"
-                    },
-                    "echo": "reply"
-                }))
+async def handle_event(event_data):
+    """处理接收到的事件"""
+    print(f"收到事件: {json.dumps(event_data, ensure_ascii=False, indent=2)}")
+    
+    # 在这里添加你的事件处理逻辑
+    # 例如：消息事件、好友请求等
+    if event_data.get("post_type") == "message":
+        print(f"收到消息: {event_data.get('message')}")
 
 
-asyncio.run(connect_napcat())
+async def connect_to_napcat():
+    """连接到 NapCat WebSocket 服务"""
+    headers = {
+        "Authorization": f"Bearer {BOT_TOKEN}"
+    }
+    
+    while True:
+        try:
+            async with connect(NAPCAT_WS_URL, additional_headers=headers) as websocket:
+                print(f"已连接到 NapCat: {NAPCAT_WS_URL}")
+                
+                # 持续接收消息
+                async for message in websocket:
+                    try:
+                        event_data = json.loads(message)
+                        await handle_event(event_data)
+                    except json.JSONDecodeError as e:
+                        print(f"JSON 解析错误: {e}")
+                    except Exception as e:
+                        print(f"处理事件时出错: {e}")
+                        
+        except Exception as e:
+            print(f"连接断开，5秒后重试... 错误: {e}")
+            await asyncio.sleep(5)
+
+
+async def main():
+    """主函数"""
+    print("正在启动 QQ Bot...")
+    print(f"NapCat 地址: {NAPCAT_WS_URL}")
+    await connect_to_napcat()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
