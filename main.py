@@ -1,53 +1,32 @@
 import asyncio
 import json
-import config
-from websockets.asyncio.server import serve
-
-HOST = "127.0.0.1"
-PORT = 22222
-TOKEN = config.BOT_TOKEN  # 填你在 NapCat TUI 设置的 token，没有则设 None
+import websockets
 
 
-async def handler(websocket):
-    # 验证 Token（从握手请求头取）
-    if TOKEN:
-        auth = websocket.request.headers.get("Authorization", "")
-        if auth != f"Bearer {TOKEN}":
-            print(f"❌ Token 验证失败: [{auth}]")
-            await websocket.close(1008, "Unauthorized")
-            return
+# 正向 WS（连接 NapCat）
+async def connect_napcat():
+    uri = "ws://127.0.0.1:3002"
 
-    # 打印连接信息
-    self_id = websocket.request.headers.get("X-Self-ID", "未知")
-    print(f"✅ NapCat 已连接！Bot QQ: {self_id}")
-    print(f"   来自: {websocket.remote_address}")
-    print("-" * 40)
+    async with websockets.connect(uri) as ws:
+        print("已连接 NapCat")
 
-    try:
-        async for raw in websocket:
-            event = json.loads(raw)
-            post_type = event.get("post_type", "")
+        async for message in ws:
+            event = json.loads(message)
 
-            # 过滤心跳，避免刷屏
-            if post_type == "meta_event" and event.get("meta_event_type") == "heartbeat":
-                print("[心跳] ♥")
-                continue
+            if event.get("post_type") == "message":
+                group_id = event.get("group_id")
+                text = event.get("raw_message")
+                print(f"收到消息: {text}")
 
-            # 打印所有事件
-            print(f"[{post_type}] {json.dumps(event, ensure_ascii=False, indent=2)}")
-
-    except Exception as e:
-        print(f"❌ 异常断开: {e}")
-    finally:
-        print("🔌 NapCat 断开")
+                # 回复
+                await ws.send(json.dumps({
+                    "action": "send_group_msg",
+                    "params": {
+                        "group_id": group_id,
+                        "message": f"收到: {text}"
+                    },
+                    "echo": "reply"
+                }))
 
 
-async def main():
-    print(f"🚀 监听 ws://{HOST}:{PORT}")
-    print(f"📝 NapCat 反向WS 填写: ws://{HOST}:{PORT}")
-    async with serve(handler, HOST, PORT) as server:
-        await server.serve_forever()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+asyncio.run(connect_napcat())
