@@ -1,11 +1,12 @@
 import asyncio
 import json
+import config
 from websockets.asyncio.server import serve
 
 # ========== 配置 ==========
 HOST = "127.0.0.1"
 PORT = 22222
-TOKEN = "yEVDumriPuRYRxaioBfcBxKBKAalxqVjJVdmckpQVFC"   # 填写你在 NapCat 设置的 Token，不验证则设为 None
+TOKEN = config.BOT_TOKEN   # 填写你在 NapCat 设置的 Token，不验证则设为 None
 # ==========================
 
 
