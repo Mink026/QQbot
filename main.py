@@ -3,107 +3,48 @@ import json
 import config
 from websockets.asyncio.server import serve
 
-# ========== 配置 ==========
 HOST = "127.0.0.1"
 PORT = 22222
-TOKEN = config.BOT_TOKEN   # 填写你在 NapCat 设置的 Token，不验证则设为 None
-# ==========================
-
-
-def verify_token(websocket) -> bool:
-    """从请求头验证 Token"""
-    if TOKEN is None:
-        return True
-
-    # NapCat 将 token 放在 Authorization 请求头
-    auth_header = websocket.request.headers.get("Authorization", "")
-
-    # 格式为 "Bearer your_token"
-    if auth_header.startswith("Bearer "):
-        received_token = auth_header[len("Bearer "):]
-        return received_token == TOKEN
-
-    return False
-
-
-async def handle_event(websocket, event: dict):
-    """处理事件"""
-    post_type = event.get("post_type")
-
-    if post_type == "message":
-        msg_type = event.get("message_type")
-        raw_msg = event.get("raw_message", "")
-        sender = event.get("sender", {})
-        nickname = sender.get("nickname", "未知")
-
-        if msg_type == "group":
-            group_id = event.get("group_id")
-            user_id = event.get("user_id")
-            print(f"[群消息] 群:{group_id} | {nickname}({user_id}): {raw_msg}")
-
-        elif msg_type == "private":
-            user_id = event.get("user_id")
-            print(f"[私聊] {nickname}({user_id}): {raw_msg}")
-
-            # 回复私聊
-            await websocket.send(json.dumps({
-                "action": "send_private_msg",
-                "params": {
-                    "user_id": user_id,
-                    "message": f"收到：{raw_msg}"
-                },
-                "echo": "reply"
-            }, ensure_ascii=False))
-
-    elif post_type == "meta_event":
-        meta_type = event.get("meta_event_type")
-        if meta_type == "heartbeat":
-            print("[心跳] ♥")
-        elif meta_type == "lifecycle":
-            print(f"[生命周期] {event.get('sub_type')}")
-
-    elif post_type == "notice":
-        print(f"[通知] {event.get('notice_type')}: {event}")
-
-    elif "echo" in event:
-        print(f"[API响应] {event}")
-
-    else:
-        print(f"[未知事件] {event}")
+TOKEN = config.BOT_TOKEN  # 填你在 NapCat TUI 设置的 token，没有则设 None
 
 
 async def handler(websocket):
-    """处理 NapCat 连接"""
+    # 验证 Token（从握手请求头取）
+    if TOKEN:
+        auth = websocket.request.headers.get("Authorization", "")
+        if auth != f"Bearer {TOKEN}":
+            print(f"❌ Token 验证失败: [{auth}]")
+            await websocket.close(1008, "Unauthorized")
+            return
 
-    # 验证 Token
-    if not verify_token(websocket):
-        print(f"❌ Token 验证失败，拒绝连接")
-        await websocket.close(1008, "Invalid token")
-        return
-
-    print(f"✅ NapCat 连接成功: {websocket.remote_address}")
+    # 打印连接信息
+    self_id = websocket.request.headers.get("X-Self-ID", "未知")
+    print(f"✅ NapCat 已连接！Bot QQ: {self_id}")
+    print(f"   来自: {websocket.remote_address}")
+    print("-" * 40)
 
     try:
-        async for raw_message in websocket:
-            try:
-                event = json.loads(raw_message)
-                await handle_event(websocket, event)
-            except json.JSONDecodeError:
-                print(f"⚠️ JSON 解析失败: {raw_message}")
+        async for raw in websocket:
+            event = json.loads(raw)
+            post_type = event.get("post_type", "")
+
+            # 过滤心跳，避免刷屏
+            if post_type == "meta_event" and event.get("meta_event_type") == "heartbeat":
+                print("[心跳] ♥")
+                continue
+
+            # 打印所有事件
+            print(f"[{post_type}] {json.dumps(event, ensure_ascii=False, indent=2)}")
 
     except Exception as e:
-        print(f"❌ 连接异常: {e}")
+        print(f"❌ 异常断开: {e}")
     finally:
-        print(f"🔌 NapCat 断开连接")
+        print("🔌 NapCat 断开")
 
 
 async def main():
-    print(f"🚀 启动 WS 服务器: ws://{HOST}:{PORT}")
-    if TOKEN:
-        print(f"🔐 Token 验证已开启")
-    else:
-        print(f"⚠️  Token 验证未开启")
-
+    print(f"🚀 监听 ws://{HOST}:{PORT}")
+    print(f"📝 NapCat 反向WS 填写: ws://{HOST}:{PORT}")
     async with serve(handler, HOST, PORT) as server:
         await server.serve_forever()
 
