@@ -1,5 +1,4 @@
-import json
-import random
+from ..action import interaction
 
 from websockets.asyncio.client import ClientConnection
 
@@ -26,7 +25,11 @@ async def handle_message(event_data: dict, websocket: ClientConnection):
 
             # @到自己
             if event_data.get("self_id") in [int(at_id) for at_id in at_info if at_id != "all"]:
-                await set_msg_emoji_like(msg_id, websocket)
+                # 给消息贴表情
+                await interaction.set_msg_emoji_like(msg_id, websocket)
+                # 回复消息
+                await interaction.send_group_msg_reply(group_id, sender_id, websocket)
+
         # await websocket.send(
         #     json.dumps(
         #         {
@@ -41,19 +44,4 @@ async def handle_message(event_data: dict, websocket: ClientConnection):
     # print(datetime.datetime.now().strftime("%Y-%m-%d"))
 
 
-async def set_msg_emoji_like(msg_id: int, websocket: ClientConnection):
-    """向消息贴表情（随机）"""
-    emoji_id_lst = [171, 75, 10024, 128147, 128522]
-    await websocket.send(
-        json.dumps(
-            {
-                "action": "set_msg_emoji_like",
-                "params": {
-                    "message_id": msg_id,
-                    "emoji_id": emoji_id_lst[random.randint(0, len(emoji_id_lst) - 1)],
-                    "set": True
-                }
-            }
-        )
-    )
-    print(f"给消息 {msg_id} 添加了表情")
+
