@@ -18,14 +18,14 @@ async def handle_message(event_data: dict, websocket: ClientConnection):
         # 群@
         if "at" in [data.get("type") for data in event_data.get("message")]:
             at_info = [
-                int(data.get("data").get("qq")) for data in event_data.get("message") if data.get("type") == "at"
+                data.get("data").get("qq") for data in event_data.get("message") if data.get("type") == "at"
             ]
             print(
-                f"""【{group_name}】 [{sender_name}] @{"+".join(str(at_id) for at_id in at_info)} {text}"""
+                f"""【{group_name}】 [{sender_name}] @{"+".join(at_info)} {text}"""
             )
 
             # @到自己
-            if event_data.get("self_id") in at_info:
+            if event_data.get("self_id") in [int(at_id) for at_id in at_info if at_id != "all"]:
                 await set_msg_emoji_like(msg_id, websocket)
         # await websocket.send(
         #     json.dumps(
@@ -43,14 +43,14 @@ async def handle_message(event_data: dict, websocket: ClientConnection):
 
 async def set_msg_emoji_like(msg_id: int, websocket: ClientConnection):
     """向消息贴表情（随机）"""
-    emoji_id_lst = [171, 9786, 128522]
+    emoji_id_lst = [171, 75]
     await websocket.send(
         json.dumps(
             {
                 "action": "set_msg_emoji_like",
                 "params": {
                     "message_id": msg_id,
-                    "emoji_id": random.choice(emoji_id_lst),
+                    "emoji_id": emoji_id_lst[random.randint(0, len(emoji_id_lst) - 1)],
                     "set": True
                 }
             }
