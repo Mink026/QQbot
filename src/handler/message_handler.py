@@ -20,7 +20,7 @@ async def handle_message(event_data: dict, websocket: ClientConnection):
                 data.get("data").get("qq") for data in event_data.get("message") if data.get("type") == "at"
             ]
             print(
-                f"""群【{group_name}】@消息: [{sender_name}] @{"+".join(at_info)} {text}"""
+                f"""【{group_name}】 [{sender_name}] @{"+".join(at_info)} {text}"""
             )
 
             # @到自己
