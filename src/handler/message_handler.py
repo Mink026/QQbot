@@ -43,7 +43,7 @@ async def handle_message(event_data: dict, websocket: ClientConnection):
 
 async def set_msg_emoji_like(msg_id: int, websocket: ClientConnection):
     """向消息贴表情（随机）"""
-    emoji_id_lst = [171, 75]
+    emoji_id_lst = [171, 75, 10024, 128147, 128522]
     await websocket.send(
         json.dumps(
             {

@@ -13,14 +13,13 @@ async def handle_event(event_data: dict, websocket: ClientConnection):
             await handle_message(event_data, websocket)
         except Exception as e:
             print(f"处理消息时出错: {e}")
-        # await websocket.send(
-        #     json.dumps(
-        #         {
-        #             "action": "send_private_msg",
-        #             "params": {
-        #                 "user_id": 446952980,
-        #                 "message": "测试"
-        #             }
-        #         }
-        #     )
-        # )
+        await websocket.send(
+            json.dumps(
+                {
+                    "action": "get_ai_characters",
+                    "params": {
+                        "group_id": 1057977449,
+                    }
+                }
+            )
+        )
