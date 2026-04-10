@@ -29,16 +29,19 @@ async def send_group_msg_reply(group_id: int, msg_id: int, websocket: ClientConn
     await websocket.send(
         json.dumps(
             {
-                "group_id": group_id,
-                "message": [
-                    {
-                        "type": "text",
-                        "data": {
-                            "id": str(msg_id),
-                            "text": "你好呀"
+                "action": "send_group_msg",
+                "params": {
+                    "group_id": group_id,
+                    "message": [
+                        {
+                            "type": "text",
+                            "data": {
+                                "id": str(msg_id),
+                                "text": "你好呀"
+                            }
                         }
-                    }
-                ]
+                    ]
+                }
             }
         )
     )
