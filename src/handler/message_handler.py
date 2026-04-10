@@ -15,7 +15,7 @@ async def handle_message(event_data: dict, websocket: ClientConnection):
         text = "".join(data.get("data").get("text") for data in event_data.get('message') if data.get("type") == "text")
 
         # 群@
-        if any([data.get("type") for data in event_data.get("message")]) == "at":
+        if "at" in [data.get("type") for data in event_data.get("message")]:
             at_info = [
                 data.get("data").get("qq") for data in event_data.get("message") if data.get("type") == "at"
             ]
@@ -24,7 +24,7 @@ async def handle_message(event_data: dict, websocket: ClientConnection):
             )
 
             # @到自己
-            if any(at_info) == event_data.get("self_id"):
+            if event_data.get("self_id") in at_info:
                 await set_msg_emoji_like(msg_id, websocket)
         # await websocket.send(
         #     json.dumps(
