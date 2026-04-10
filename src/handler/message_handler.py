@@ -28,7 +28,7 @@ async def handle_message(event_data: dict, websocket: ClientConnection):
                 # 给消息贴表情
                 await interaction.set_msg_emoji_like(msg_id, websocket)
                 # 回复消息
-                await interaction.send_group_msg_reply(group_id, sender_id, websocket)
+                await interaction.send_group_msg_reply(group_id, msg_id, websocket)
 
         # await websocket.send(
         #     json.dumps(
