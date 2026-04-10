@@ -36,7 +36,7 @@ async def send_group_msg_reply(group_id: int, msg_id: int, websocket: ClientConn
                         {
                             "type": "text",
                             "data": {
-                                "id": str(msg_id),
+                                "message_id": str(msg_id),
                                 "text": "你好呀"
                             }
                         }

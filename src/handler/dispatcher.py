@@ -18,7 +18,7 @@ async def handle_event(event_data: dict, websocket: ClientConnection):
                 {
                     "action": "send_group_ai_record",
                     "params": {
-                        "group_id": 1057977449,
+                        "group_id": 1098322482,
                         "character": "lucy-voice-female1",
                         "text": "你好，很高兴遇见你"
                     }
