@@ -20,7 +20,7 @@ async def handle_event(event_data: dict, websocket: ClientConnection):
                     "params": {
                         "group_id": 1098322482,
                         "character": "lucy-voice-female1",
-                        "text": "你好，很高兴遇见你"
+                        "text": "Nice to meet you"
                     }
                 }
             )
