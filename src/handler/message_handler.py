@@ -1,4 +1,5 @@
 import json
+import random
 
 from websockets.asyncio.client import ClientConnection
 
@@ -41,13 +42,15 @@ async def handle_message(event_data: dict, websocket: ClientConnection):
 
 
 async def set_msg_emoji_like(msg_id: int, websocket: ClientConnection):
+    """向消息贴表情（随机）"""
+    emoji_id_lst = [171, 9786, 128522]
     await websocket.send(
         json.dumps(
             {
                 "action": "set_msg_emoji_like",
                 "params": {
                     "message_id": msg_id,
-                    "emoji_id": 8,
+                    "emoji_id": random.choice(emoji_id_lst),
                     "set": True
                 }
             }
