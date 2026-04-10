@@ -1,5 +1,5 @@
 import json
-from message_handler import handle_message
+from .message_handler import handle_message
 from websockets.asyncio.client import ClientConnection
 
 
