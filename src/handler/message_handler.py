@@ -53,3 +53,4 @@ async def set_msg_emoji_like(msg_id: int, websocket: ClientConnection):
             }
         )
     )
+    print(f"给消息 {msg_id} 添加了表情")
