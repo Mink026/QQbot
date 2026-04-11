@@ -1,5 +1,7 @@
 import asyncio
 import config
+from datetime import datetime
+
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_openai import ChatOpenAI
@@ -19,8 +21,10 @@ def _build_group_at_human_content(
     msg_id: int,
     text: str,
 ) -> str:
+    current_time = datetime.now().astimezone().isoformat(timespec="seconds")
     return (
         "Context for this @-mention (use these values in tools; do not make up IDs):\n"
+        f"- current_time: {current_time}\n"
         f"- group_id: {group_id}\n"
         f"- group_name: {group_name}\n"
         f"- sender_name: {sender_name}\n"
