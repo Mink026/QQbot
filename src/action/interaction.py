@@ -3,11 +3,23 @@ import random
 
 from websockets.asyncio.client import ClientConnection
 
+from ..qq_ws_context import current_qq_websocket
 
-async def set_msg_emoji_like(msg_id: int, websocket: ClientConnection):
+
+def _resolve_ws(websocket: ClientConnection | None) -> ClientConnection:
+    if websocket is not None:
+        return websocket
+    ws = current_qq_websocket.get()
+    if ws is None:
+        raise RuntimeError("未绑定 QQ WebSocket：请在 handle_message 入口设置 current_qq_websocket")
+    return ws
+
+
+async def set_msg_emoji_like(msg_id: int, websocket: ClientConnection | None = None):
     """群中向消息贴表情（随机）"""
     emoji_id_lst = [171, 75, 10024, 128147, 128522]
-    await websocket.send(
+    ws = _resolve_ws(websocket)
+    await ws.send(
         json.dumps(
             {
                 "action": "set_msg_emoji_like",
@@ -22,11 +34,42 @@ async def set_msg_emoji_like(msg_id: int, websocket: ClientConnection):
     print(f"给消息 {msg_id} 添加了表情")
 
 
-async def send_group_msg_reply(group_id: int, msg_id: int, websocket: ClientConnection):
+async def send_group_msg(
+    group_id: int, text: str, websocket: ClientConnection | None = None
+):
     """
-    回复群聊消息
+    发送群聊文本消息
     """
-    await websocket.send(
+    ws = _resolve_ws(websocket)
+    await ws.send(
+        json.dumps(
+            {
+                "action": "send_group_msg",
+                "params": {
+                    "group_id": group_id,
+                    "message": [
+                        {
+                            "type": "text",
+                            "data": {
+                                "text": text
+                            }
+                        },
+                    ]
+                }
+            }
+        )
+    )
+    print(f"在 {group_id} 发送了消息")
+
+
+async def send_group_msg_reply(
+    group_id: int, msg_id: int, text: str, websocket: ClientConnection | None = None
+):
+    """
+    文本回复群聊指定消息
+    """
+    ws = _resolve_ws(websocket)
+    await ws.send(
         json.dumps(
             {
                 "action": "send_group_msg",
@@ -42,7 +85,7 @@ async def send_group_msg_reply(group_id: int, msg_id: int, websocket: ClientConn
                         {
                             "type": "text",
                             "data": {
-                                "text": "你好呀"
+                                "text": text
                             }
                         }
                     ]
