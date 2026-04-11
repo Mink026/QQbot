@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import threading
 from collections import defaultdict, deque
 
@@ -77,8 +78,38 @@ def extract_plain_tool_texts_from_messages(messages: list[BaseMessage]) -> list[
     return lines
 
 
+def strip_markdown_for_qq(text: str) -> str:
+    """Remove common Markdown so final replies are plain text in QQ."""
+    if not text or not text.strip():
+        return text
+    t = text
+    t = re.sub(r"```[\s\S]*?```", "", t)
+    t = re.sub(r"`([^`]+)`", r"\1", t)
+    t = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", t)
+    t = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", t)
+    t = re.sub(r"~~(.+?)~~", r"\1", t)
+    while "**" in t:
+        nt = re.sub(r"\*\*(.+?)\*\*", r"\1", t, flags=re.DOTALL)
+        if nt == t:
+            t = t.replace("**", "")
+            break
+        t = nt
+    while "__" in t:
+        nt = re.sub(r"__(.+?)__", r"\1", t, flags=re.DOTALL)
+        if nt == t:
+            t = t.replace("__", "")
+            break
+        t = nt
+    t = re.sub(r"(?m)^#{1,6}\s+", "", t)
+    t = re.sub(r"(?m)^\s*>\s?", "", t)
+    t = re.sub(r"(?m)^\s*(\*{3,}|-{3,}|_{3,})\s*$", "", t)
+    t = re.sub(r"\n{3,}", "\n\n", t)
+    return t.strip()
+
+
 def extract_final_assistant_text(messages: list[BaseMessage]) -> str:
     """Last AIMessage with no tool calls; used as the reply body for the @ message."""
+    raw = ""
     for msg in reversed(messages):
         if not isinstance(msg, AIMessage):
             continue
@@ -89,7 +120,8 @@ def extract_final_assistant_text(messages: list[BaseMessage]) -> str:
             continue
         if isinstance(content, str):
             if content.strip():
-                return content
+                raw = content
+                break
         elif isinstance(content, list):
             parts = []
             for block in content:
@@ -99,12 +131,14 @@ def extract_final_assistant_text(messages: list[BaseMessage]) -> str:
                     parts.append(block)
             joined = "".join(parts).strip()
             if joined:
-                return joined
+                raw = joined
+                break
         else:
             s = str(content).strip()
             if s:
-                return s
-    return ""
+                raw = s
+                break
+    return strip_markdown_for_qq(raw.strip()) if raw else ""
 
 
 def build_assistant_combined_for_cache(messages: list[BaseMessage]) -> str:
