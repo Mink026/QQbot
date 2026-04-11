@@ -25,6 +25,23 @@ async def qq_send_group_msg(group_id: int, text: str) -> str:
 
 
 @tool
+async def qq_send_group_ai_record(
+    group_id: int, text: str, character: str | None = None
+) -> str:
+    """
+    Send an AI voice message to a QQ group (synthesized speech from text).
+    `text` is what will be spoken. `character` is the NapCat voice profile id;
+    omit it to use the default from server configuration (e.g. lucy-voice-female1).
+    This is not a reply to a specific message; it posts a new voice record in the group.
+    """
+    try:
+        await interaction.send_group_ai_record(group_id, text, character)
+    except RuntimeError as e:
+        return f"Failed: {e}"
+    return "AI voice record sent to the group."
+
+
+@tool
 async def search(
     query: str,
     topic: Literal["general", "news", "finance"] = None,
@@ -78,4 +95,4 @@ async def crawl_website(url: str, instructions: str) -> dict:
         return {"error": str(e)}
 
 
-tools_lst = [qq_send_group_msg, search, crawl_website]
+tools_lst = [qq_send_group_msg, qq_send_group_ai_record, search, crawl_website]

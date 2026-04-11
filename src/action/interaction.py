@@ -1,6 +1,7 @@
 import json
 import random
 
+import config
 from websockets.asyncio.client import ClientConnection
 
 from ..qq_ws_context import current_qq_websocket
@@ -60,6 +61,30 @@ async def send_group_msg(
         )
     )
     print(f"在 {group_id} 发送了消息")
+
+
+async def send_group_ai_record(
+    group_id: int,
+    text: str,
+    character: str | None = None,
+    websocket: ClientConnection | None = None,
+):
+    """Send an AI-generated voice record to a QQ group (NapCat send_group_ai_record)."""
+    voice = character or config.AI_VOICE_CHARACTER
+    ws = _resolve_ws(websocket)
+    await ws.send(
+        json.dumps(
+            {
+                "action": "send_group_ai_record",
+                "params": {
+                    "group_id": group_id,
+                    "character": voice,
+                    "text": text,
+                },
+            }
+        )
+    )
+    print(f"在 {group_id} 发送了 AI 语音")
 
 
 async def send_group_msg_reply(
