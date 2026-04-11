@@ -13,15 +13,15 @@ async def handle_event(event_data: dict, websocket: ClientConnection):
             await handle_message(event_data, websocket)
         except Exception as e:
             print(f"处理消息时出错: {e}")
-        await websocket.send(
-            json.dumps(
-                {
-                    "action": "send_group_ai_record",
-                    "params": {
-                        "group_id": 1098322482,
-                        "character": "lucy-voice-female1",
-                        "text": "Nice to meet you"
-                    }
-                }
-            )
-        )
+        # await websocket.send(
+        #     json.dumps(
+        #         {
+        #             "action": "send_group_ai_record",
+        #             "params": {
+        #                 "group_id": 1098322482,
+        #                 "character": "lucy-voice-female1",
+        #                 "text": "Nice to meet you"
+        #             }
+        #         }
+        #     )
+        # )
