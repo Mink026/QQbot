@@ -3,10 +3,16 @@ import config
 from datetime import datetime
 
 from langchain.agents import create_agent
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langchain.messages import SystemMessage
 
+from .conversation_history import (
+    append_turn,
+    build_assistant_combined_for_cache,
+    extract_final_assistant_text,
+    history_as_messages,
+)
 from .tools import tools_lst
 
 from .system_prompt import sys_prompt
@@ -32,36 +38,6 @@ def _build_group_at_human_content(
         f"- msg_id: {msg_id}\n"
         f"- text: {text}\n"
     )
-
-
-def extract_final_assistant_text(messages: list[BaseMessage]) -> str:
-    """Last AIMessage with no tool calls; used as the reply body for the @ message."""
-    for msg in reversed(messages):
-        if not isinstance(msg, AIMessage):
-            continue
-        if getattr(msg, "tool_calls", None):
-            continue
-        content = msg.content
-        if content is None:
-            continue
-        if isinstance(content, str):
-            if content.strip():
-                return content
-        elif isinstance(content, list):
-            parts = []
-            for block in content:
-                if isinstance(block, dict) and block.get("type") == "text":
-                    parts.append(block.get("text", ""))
-                elif isinstance(block, str):
-                    parts.append(block)
-            joined = "".join(parts).strip()
-            if joined:
-                return joined
-        else:
-            s = str(content).strip()
-            if s:
-                return s
-    return ""
 
 
 class QQGroupAgent:
@@ -119,20 +95,26 @@ class QQGroupAgent:
     ) -> dict:
         """
         Returns a dict with key `messages` (list of LangChain messages), same shape as
-        `create_agent` / LangGraph agent output.
+        `create_agent` / LangGraph agent output. Prepends up to 20 prior turns for this
+        group and appends this turn to local cache after completion.
         """
-        return await self.agent.ainvoke(
-            {
-                "messages": self.build_messages_for_group_at(
-                    group_id=group_id,
-                    group_name=group_name,
-                    sender_name=sender_name,
-                    sender_id=sender_id,
-                    msg_id=msg_id,
-                    text=text,
-                )
-            }
+        user_content = _build_group_at_human_content(
+            group_id=group_id,
+            group_name=group_name,
+            sender_name=sender_name,
+            sender_id=sender_id,
+            msg_id=msg_id,
+            text=text,
         )
+        prior = history_as_messages(group_id)
+        messages_in = prior + [HumanMessage(content=user_content)]
+        result = await self.agent.ainvoke({"messages": messages_in})
+        messages_full = result.get("messages", [])
+        # Only this round (exclude re-injected history) so cache is not duplicated.
+        suffix = messages_full[len(prior) :]
+        assistant_combined = build_assistant_combined_for_cache(suffix)
+        append_turn(group_id, user_content, assistant_combined)
+        return result
 
 
 default_group_agent = QQGroupAgent()

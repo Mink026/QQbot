@@ -1,3 +1,5 @@
+import asyncio
+
 from ..action import interaction
 from ..agent.init_llm import default_group_agent, extract_final_assistant_text
 from ..qq_ws_context import current_qq_websocket
@@ -45,6 +47,7 @@ async def _handle_message_inner(event_data: dict, websocket: ClientConnection):
                 )
                 reply_body = extract_final_assistant_text(result.get("messages", []))
                 if reply_body:
+                    await asyncio.sleep(2)
                     await interaction.send_group_msg_reply(
                         group_id, msg_id, reply_body, websocket
                     )
