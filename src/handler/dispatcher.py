@@ -5,7 +5,7 @@ from websockets.asyncio.client import ClientConnection
 
 async def handle_event(event_data: dict, websocket: ClientConnection):
     """处理接收事件"""
-    print(f"收到事件: {json.dumps(event_data, ensure_ascii=False, indent=2)}")
+    print(f"收到事件: {event_data.get("post_type")}")
 
     if event_data.get("post_type") == "message":
         print(f"收到消息: {event_data.get('message')}")
