@@ -119,3 +119,37 @@ async def send_group_msg_reply(
         )
     )
     print(f"回复了 {msg_id} 消息")
+
+
+async def send_group_msg_picture(
+    group_id: int, msg_id: int, text: str, websocket: ClientConnection | None = None
+):
+    """
+    发送群聊图片消息
+    """
+    ws = _resolve_ws(websocket)
+    await ws.send(
+        json.dumps(
+            {
+                "action": "send_group_msg",
+                "params": {
+                    "group_id": group_id,
+                    "message": [
+                        {
+                            "type": "image",
+                            "data": {
+                                # "path": "text",
+                                # "thumb": "string",
+                                # "name": "string",
+                                "file": "string",
+                                # "url": "string",
+                                # "summary": "string",
+                                # "sub_type": 0
+                            }
+                        }
+                    ]
+                }
+            }
+        )
+    )
+    print(f"在 {group_id} 发送了图片")
