@@ -26,3 +26,37 @@ async def handle_event(event_data: dict, websocket: ClientConnection):
                 }
             )
         )
+        await websocket.send(
+            json.dumps(
+                {
+                    "action": "fetch_custom_face",
+                    "params": {
+                        "count": 48
+                    }
+                }
+            )
+        )
+        await websocket.send(
+            json.dumps(
+                {
+                    "action": "send_group_msg",
+                    "params": {
+                        "group_id": 996587913,
+                        "message": [
+                            {
+                                "type": "image",
+                                "data": {
+                                    # "path": "text",
+                                    # "thumb": "string",
+                                    # "name": "string",
+                                    "file": "Confused.png",
+                                    "url": "https://p.qpic.cn/qq_expression/994924990/994924990_0_0_0_2E9E7C076157138B8F40D2F80F70D5EA_0_0/0",
+                                    # "summary": "string",
+                                    # "sub_type": 0
+                                }
+                            }
+                        ]
+                    }
+                }
+            )
+        )
