@@ -5,7 +5,10 @@ from websockets.asyncio.client import ClientConnection
 
 async def handle_event(event_data: dict, websocket: ClientConnection):
     """处理接收事件"""
-    print(f"收到事件: {event_data.get("post_type")}")
+    # if event_data.get("post_type"):
+    #     print(f"收到事件: {event_data.get("post_type")}")
+    print(f"收到事件: {json.dumps(event_data, ensure_ascii=False, indent=2)}")
+
 
     if event_data.get("post_type") == "message":
         print(f"收到消息: {event_data.get('message')}")
@@ -13,15 +16,13 @@ async def handle_event(event_data: dict, websocket: ClientConnection):
             await handle_message(event_data, websocket)
         except Exception as e:
             print(f"处理消息时出错: {e}")
-        # await websocket.send(
-        #     json.dumps(
-        #         {
-        #             "action": "send_group_ai_record",
-        #             "params": {
-        #                 "group_id": 1098322482,
-        #                 "character": "lucy-voice-female1",
-        #                 "text": "Nice to meet you"
-        #             }
-        #         }
-        #     )
-        # )
+        await websocket.send(
+            json.dumps(
+                {
+                    "action": "fetch_custom_face",
+                    "params": {
+                        "count": 48
+                    }
+                }
+            )
+        )
