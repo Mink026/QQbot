@@ -4,8 +4,19 @@ from langchain.tools import tool
 import config
 from tavily import AsyncTavilyClient
 from ..action import interaction
+from .face_enum import list_face_enum_keys, resolve_face
 
 tavily_client = AsyncTavilyClient(config.TAVILY_KEY)
+
+_FACE_ENUM_DOC = ", ".join(list_face_enum_keys()) or "(none configured)"
+
+_EMOTION_FACE_TOOL_DESCRIPTION = (
+    "Send a QQ group image sticker for a specific mood (joy, sadness, tears, surprise, "
+    "confusion, anger, captivation, etc.). Pass only the enum string in lowercase without "
+    ".png (built-in list in code). Valid keys: "
+    + _FACE_ENUM_DOC
+    + ". Plain non-reply image; do not announce with a separate status message."
+)
 
 
 @tool
@@ -39,6 +50,21 @@ async def qq_send_group_ai_record(
     except RuntimeError as e:
         return f"Failed: {e}"
     return "AI voice record sent to the group."
+
+
+@tool(description=_EMOTION_FACE_TOOL_DESCRIPTION)
+async def qq_send_group_emotion_face(group_id: int, face: str) -> str:
+    """Send emotion-face image sticker to the group (NapCat image + sub_type 1)."""
+    resolved = resolve_face(face)
+    if resolved is None:
+        keys = ", ".join(list_face_enum_keys()) or "none"
+        return f"Unknown face enum {face!r}. Valid: {keys}"
+    fname, url = resolved
+    try:
+        await interaction.send_group_msg_image(group_id, fname, url, sub_type=1)
+    except RuntimeError as e:
+        return f"Failed: {e}"
+    return f"Emotion face {fname} sent."
 
 
 @tool
@@ -95,4 +121,10 @@ async def crawl_website(url: str, instructions: str) -> dict:
         return {"error": str(e)}
 
 
-tools_lst = [qq_send_group_msg, qq_send_group_ai_record, search, crawl_website]
+tools_lst = [
+    qq_send_group_msg,
+    qq_send_group_ai_record,
+    qq_send_group_emotion_face,
+    search,
+    crawl_website,
+]

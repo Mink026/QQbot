@@ -121,12 +121,14 @@ async def send_group_msg_reply(
     print(f"回复了 {msg_id} 消息")
 
 
-async def send_group_msg_picture(
-    group_id: int, msg_id: int, text: str, websocket: ClientConnection | None = None
+async def send_group_msg_image(
+    group_id: int,
+    file: str,
+    url: str,
+    sub_type: int = 1,
+    websocket: ClientConnection | None = None,
 ):
-    """
-    发送群聊图片消息
-    """
+    """Send a single image to a QQ group (NapCat send_group_msg image segment). `sub_type` 1 is required for expression-style images."""
     ws = _resolve_ws(websocket)
     await ws.send(
         json.dumps(
@@ -138,18 +140,14 @@ async def send_group_msg_picture(
                         {
                             "type": "image",
                             "data": {
-                                # "path": "text",
-                                # "thumb": "string",
-                                # "name": "string",
-                                "file": "string",
-                                # "url": "string",
-                                # "summary": "string",
-                                # "sub_type": 0
-                            }
+                                "file": file,
+                                "url": url,
+                                "sub_type": sub_type,
+                            },
                         }
-                    ]
-                }
+                    ],
+                },
             }
         )
     )
-    print(f"在 {group_id} 发送了图片")
+    print(f"在 {group_id} 发送了图片 {file}")

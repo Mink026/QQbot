@@ -11,7 +11,9 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
 MAX_TURNS = 8
 
-_PLAIN_POST_TOOLS = frozenset({"qq_send_group_msg", "qq_send_group_ai_record"})
+_PLAIN_POST_TOOLS = frozenset(
+    {"qq_send_group_msg", "qq_send_group_ai_record", "qq_send_group_emotion_face"}
+)
 
 _lock = threading.Lock()
 _store: dict[int, deque[tuple[str, str]]] = defaultdict(lambda: deque(maxlen=MAX_TURNS))
@@ -71,6 +73,11 @@ def extract_plain_tool_texts_from_messages(messages: list[BaseMessage]) -> list[
             if name not in _PLAIN_POST_TOOLS:
                 continue
             args = _tool_call_args(tc)
+            if name == "qq_send_group_emotion_face":
+                fe = args.get("face")
+                if isinstance(fe, str) and fe.strip():
+                    lines.append(f"[emotion_face] {fe.strip()}")
+                continue
             text = args.get("text")
             if isinstance(text, str) and text.strip():
                 label = "voice" if name == "qq_send_group_ai_record" else "plain"
