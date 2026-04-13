@@ -11,11 +11,16 @@ tavily_client = AsyncTavilyClient(config.TAVILY_KEY)
 _FACE_ENUM_DOC = ", ".join(list_face_enum_keys()) or "(none configured)"
 
 _EMOTION_FACE_TOOL_DESCRIPTION = (
-    "Send a QQ group image sticker for a specific mood (joy, sadness, tears, surprise, "
-    "confusion, anger, captivation, etc.). Pass only the enum string in lowercase without "
-    ".png (built-in list in code). Valid keys: "
+    "REQUIRED whenever Nika's affect clearly shifts or is strongly colored — not optional. "
+    "You MUST call this tool if there is real emotional movement: joy/warmth (happy), grief or "
+    "heaviness (sad, crying), shock (surprised), not understanding (confused), anger "
+    "(extremelyangry), being drawn in or wonder-struck (captivated), etc. If words, actions in "
+    "parentheses, or tone imply such a feeling, you must send the matching face before or "
+    "alongside finishing your turn (same model step is fine). Pick the closest enum if none "
+    "fits perfectly. Pass only lowercase enum without .png. Valid keys: "
     + _FACE_ENUM_DOC
-    + ". Plain non-reply image; do not announce with a separate status message."
+    + ". Plain non-reply image; never pre-announce with a separate status line. The sticker "
+    "adds a visible beat; it does not replace your final text reply."
 )
 
 
@@ -54,7 +59,7 @@ async def qq_send_group_ai_record(
 
 @tool(description=_EMOTION_FACE_TOOL_DESCRIPTION)
 async def qq_send_group_emotion_face(group_id: int, face: str) -> str:
-    """Send emotion-face image sticker to the group (NapCat image + sub_type 1)."""
+    """Required on clear affect; sends emotion-face image (NapCat, sub_type 1)."""
     resolved = resolve_face(face)
     if resolved is None:
         keys = ", ".join(list_face_enum_keys()) or "none"
