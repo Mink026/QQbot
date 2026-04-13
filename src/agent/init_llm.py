@@ -95,7 +95,7 @@ class QQGroupAgent:
     ) -> dict:
         """
         Returns a dict with key `messages` (list of LangChain messages), same shape as
-        `create_agent` / LangGraph agent output. Prepends up to 20 prior turns for this
+        `create_agent` / LangGraph agent output. Prepends up to 8 prior turns for this
         group and appends this turn to local cache after completion.
         """
         user_content = _build_group_at_human_content(

@@ -9,7 +9,7 @@ from collections import defaultdict, deque
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
-MAX_TURNS = 20
+MAX_TURNS = 8
 
 _PLAIN_POST_TOOLS = frozenset({"qq_send_group_msg", "qq_send_group_ai_record"})
 
