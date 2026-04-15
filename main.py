@@ -1,8 +1,9 @@
 import asyncio
 import json
 from src.handler.dispatcher import handle_event
+from src.scheduler.broadcast import proactive_scheduler_loop
 from websockets.asyncio.client import connect
-from config import BOT_TOKEN, NAPCAT_WS_URL
+from config import BOT_TOKEN, NAPCAT_WS_URL, PROACTIVE_GROUP_IDS
 
 
 async def connect_to_napcat():
@@ -16,16 +17,22 @@ async def connect_to_napcat():
         try:
             async with connect(url, additional_headers=headers) as websocket:
                 print(f"已连接到 NapCat: {NAPCAT_WS_URL}")
-                
-                # 持续接收消息
-                async for message in websocket:
+                sched_task = asyncio.create_task(proactive_scheduler_loop(websocket))
+                try:
+                    async for message in websocket:
+                        try:
+                            event_data = json.loads(message)
+                            await handle_event(event_data, websocket)
+                        except json.JSONDecodeError as e:
+                            print(f"JSON 解析错误: {e}")
+                        except Exception as e:
+                            print(f"处理事件时出错: {e}")
+                finally:
+                    sched_task.cancel()
                     try:
-                        event_data = json.loads(message)
-                        await handle_event(event_data, websocket)
-                    except json.JSONDecodeError as e:
-                        print(f"JSON 解析错误: {e}")
-                    except Exception as e:
-                        print(f"处理事件时出错: {e}")
+                        await sched_task
+                    except asyncio.CancelledError:
+                        pass
                         
         except Exception as e:
             print(f"连接断开，5秒后重试... 错误: {e}")
@@ -41,6 +48,8 @@ async def main():
     """主函数"""
     print("正在启动 QQ Bot...")
     print(f"NapCat 地址: {NAPCAT_WS_URL}")
+    if PROACTIVE_GROUP_IDS:
+        print(f"定时群发已启用，群: {PROACTIVE_GROUP_IDS}（每天约 08:00 / 19:00 本地时间）")
     await connect_to_napcat()
 
 

@@ -5,7 +5,7 @@ dotenv.load_dotenv()
 
 BOT_TOKEN = (os.getenv("BOT_TOKEN") or "").strip()
 WS_PORT = int(os.getenv("WS_PORT"))
-NAPCAT_WS_URL = f"{os.getenv("WS_URL").strip()}:{WS_PORT}"
+NAPCAT_WS_URL = f"{os.getenv('WS_URL').strip()}:{WS_PORT}"
 
 # Tavily web search API
 TAVILY_KEY = os.getenv("TAVILY_KEY")
@@ -16,3 +16,15 @@ AI_BASE_URL = os.getenv("AI_BASE_URL")
 
 # NapCat send_group_ai_record voice character id (override via AI_VOICE_CHARACTER)
 AI_VOICE_CHARACTER = (os.getenv("AI_VOICE_CHARACTER") or "lucy-voice-female1").strip()
+
+# Comma- or semicolon-separated QQ group ids for scheduled proactive messages (08:00 / 19:00 local)
+_proactive_raw = (os.getenv("PROACTIVE_GROUP_IDS") or "").strip()
+PROACTIVE_GROUP_IDS: list[int] = []
+for _part in _proactive_raw.replace(";", ",").split(","):
+    _p = _part.strip()
+    if not _p:
+        continue
+    try:
+        PROACTIVE_GROUP_IDS.append(int(_p))
+    except ValueError:
+        pass
