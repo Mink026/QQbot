@@ -49,7 +49,9 @@ async def main():
     print("正在启动 QQ Bot...")
     print(f"NapCat 地址: {NAPCAT_WS_URL}")
     if PROACTIVE_GROUP_IDS:
-        print(f"定时群发已启用，群: {PROACTIVE_GROUP_IDS}（每天约 08:00 / 19:00 本地时间）")
+        print(
+            f"定时任务已启用，群: {PROACTIVE_GROUP_IDS}（每天约 00:00 群打卡；08:00 / 19:00 问候）"
+        )
     await connect_to_napcat()
 
 

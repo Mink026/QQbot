@@ -1,4 +1,4 @@
-"""Daily proactive group messages at 08:00 and 19:00 (local timezone)."""
+"""Scheduled group tasks: sign-in at 00:00; proactive messages at 08:00 and 19:00 (local)."""
 
 from __future__ import annotations
 
@@ -47,10 +47,25 @@ async def run_scheduled_broadcast(
         current_qq_websocket.reset(token)
 
 
+async def run_daily_group_sign(websocket: ClientConnection) -> None:
+    """每天 0:00 对配置的群调用 NapCat set_group_sign。"""
+    if not config.PROACTIVE_GROUP_IDS:
+        return
+    token = current_qq_websocket.set(websocket)
+    try:
+        for gid in config.PROACTIVE_GROUP_IDS:
+            try:
+                await interaction.set_group_sign(gid, websocket)
+            except Exception as e:
+                print(f"群打卡失败 group_id={gid}: {e}")
+    finally:
+        current_qq_websocket.reset(token)
+
+
 async def proactive_scheduler_loop(websocket: ClientConnection) -> None:
-    """Wake periodically; fire morning/evening once per calendar day in a short window after :00."""
+    """Wake periodically; fire sign-in, morning/evening once per calendar day in a short window after :00."""
     last_date: date | None = None
-    fired: dict[str, bool] = {"morning": False, "evening": False}
+    fired: dict[str, bool] = {"sign": False, "morning": False, "evening": False}
     while True:
         await asyncio.sleep(15)
         if not config.PROACTIVE_GROUP_IDS:
@@ -59,10 +74,15 @@ async def proactive_scheduler_loop(websocket: ClientConnection) -> None:
         today = now.date()
         if today != last_date:
             last_date = today
+            fired["sign"] = False
             fired["morning"] = False
             fired["evening"] = False
-        # First loop iteration in 08:00–08:01 or 19:00–19:01 local time
-        if now.hour == 8 and now.minute <= 1 and not fired["morning"]:
+        # 00:00–00:01: 群打卡
+        if now.hour == 0 and now.minute <= 1 and not fired["sign"]:
+            fired["sign"] = True
+            await run_daily_group_sign(websocket)
+        # 08:00–08:01 / 19:00–19:01: 定时问候
+        elif now.hour == 8 and now.minute <= 1 and not fired["morning"]:
             fired["morning"] = True
             await run_scheduled_broadcast(websocket, "morning")
         elif now.hour == 19 and now.minute <= 1 and not fired["evening"]:

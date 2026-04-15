@@ -35,6 +35,19 @@ async def set_msg_emoji_like(msg_id: int, websocket: ClientConnection | None = N
     print(f"给消息 {msg_id} 添加了表情")
 
 
+async def set_group_sign(
+    group_id: int, websocket: ClientConnection | None = None
+) -> None:
+    """NapCat 群打卡（set_group_sign）。"""
+    ws = _resolve_ws(websocket)
+    await ws.send(
+        json.dumps(
+            {"action": "set_group_sign", "params": {"group_id": group_id}}
+        )
+    )
+    print(f"群 {group_id} 已请求 set_group_sign")
+
+
 async def send_group_msg(
     group_id: int, text: str, websocket: ClientConnection | None = None
 ):
