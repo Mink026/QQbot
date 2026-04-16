@@ -28,10 +28,9 @@ _EMOTION_FACE_TOOL_DESCRIPTION = (
 async def qq_send_group_msg(group_id: int, text: str) -> str:
     """
     Send a plain text message to a QQ group (not a reply to any message).
-    Use this to post short status updates to the group, for example before
-    invoking slow or functional tools (web search, crawl, etc.) so users know
-    what you are doing. Do not use this for the final answer to the user who
-    @-mentioned you; that answer is delivered separately by the host application.
+    Default for @-replies: post in small bursts — about every 1–2 sentences per
+    call (see system prompt). Final assistant text (no tools) is only the short
+    tail sent as the @-reply. Also use for short status lines before search/crawl.
     """
     try:
         await interaction.send_group_msg(group_id, text)
