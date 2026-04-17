@@ -42,10 +42,10 @@ async def set_group_sign(
     ws = _resolve_ws(websocket)
     await ws.send(
         json.dumps(
-            {"action": "set_group_sign", "params": {"group_id": group_id}}
+            {"action": "send_group_sign", "params": {"group_id": group_id}}
         )
     )
-    print(f"群 {group_id} 已请求 set_group_sign")
+    print(f"群 {group_id} 已请求 send_group_sign")
 
 
 async def send_group_msg(

@@ -1,4 +1,4 @@
-"""Per-group local cache: last N user prompts + combined assistant (tool plain sends + final text)."""
+"""Per-group last N turns (user + combined assistant); persisted under project ``data/``."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import json
 import re
 import threading
 from collections import defaultdict, deque
+from pathlib import Path
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
@@ -17,6 +18,58 @@ _PLAIN_POST_TOOLS = frozenset(
 
 _lock = threading.Lock()
 _store: dict[int, deque[tuple[str, str]]] = defaultdict(lambda: deque(maxlen=MAX_TURNS))
+
+
+def _persist_paths() -> tuple[Path, Path]:
+    root = Path(__file__).resolve().parent.parent.parent
+    data_dir = root / "data"
+    return data_dir, data_dir / "conversation_history.json"
+
+
+def _load_persisted() -> None:
+    _, path = _persist_paths()
+    if not path.is_file():
+        return
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return
+    if not isinstance(raw, dict):
+        return
+    loaded: dict[int, deque[tuple[str, str]]] = {}
+    for key, value in raw.items():
+        try:
+            gid = int(key)
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(value, list):
+            continue
+        turns: list[tuple[str, str]] = []
+        for item in value:
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                u, a = item[0], item[1]
+                if isinstance(u, str) and isinstance(a, str):
+                    turns.append((u, a))
+        if turns:
+            loaded[gid] = deque(turns[-MAX_TURNS:], maxlen=MAX_TURNS)
+    for gid, dq in loaded.items():
+        _store[gid] = dq
+
+
+def _save_persisted() -> None:
+    data_dir, path = _persist_paths()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, list[list[str]]] = {}
+    for gid, dq in _store.items():
+        if dq:
+            payload[str(gid)] = [[u, a] for u, a in dq]
+    text = json.dumps(payload, ensure_ascii=False, indent=2)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
+
+
+_load_persisted()
 
 
 def history_as_messages(group_id: int) -> list[HumanMessage | AIMessage]:
@@ -35,6 +88,10 @@ def history_as_messages(group_id: int) -> list[HumanMessage | AIMessage]:
 def append_turn(group_id: int, user_content: str, assistant_combined: str) -> None:
     with _lock:
         _store[group_id].append((user_content, assistant_combined))
+        try:
+            _save_persisted()
+        except OSError:
+            pass
 
 
 def _tool_call_name(tc: object) -> str:
@@ -149,12 +206,24 @@ def extract_final_assistant_text(messages: list[BaseMessage]) -> str:
 
 
 def build_assistant_combined_for_cache(messages: list[BaseMessage]) -> str:
-    """Single assistant string: tool plain/voice texts + final model output."""
+    """
+    One assistant string for this turn (stored and replayed as a single AIMessage).
+
+    Concatenates, in chronological order: text from `qq_send_group_msg` /
+    `qq_send_group_ai_record` args and emotion-face markers from tool_calls across
+    the turn, then the last no-tool assistant text (the @-reply body). Matches
+    how the agent is instructed to speak in bursts then end with a short reply
+    tail — replay sees the full virtual utterance in one block.
+    """
     plain_lines = extract_plain_tool_texts_from_messages(messages)
     final = extract_final_assistant_text(messages).strip()
     parts: list[str] = []
     if plain_lines:
-        parts.append("Tool posts to group:\n" + "\n".join(plain_lines))
+        parts.append(
+            "[Same turn — group posts via tools, time order]\n" + "\n".join(plain_lines)
+        )
     if final:
-        parts.append("Final reply (sent as @-reply):\n" + final)
+        parts.append(
+            "[Same turn — continuation only, sent as @-reply]\n" + final
+        )
     return "\n\n".join(parts) if parts else "(no assistant output)"

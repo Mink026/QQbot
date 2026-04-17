@@ -28,3 +28,31 @@ for _part in _proactive_raw.replace(";", ",").split(","):
         PROACTIVE_GROUP_IDS.append(int(_p))
     except ValueError:
         pass
+
+
+def _parse_ws_cmd_tcp_bind(s: str) -> tuple[str, int] | None:
+    s = s.strip()
+    if not s or ":" not in s:
+        return None
+    host, _, port_s = s.rpartition(":")
+    host = host.strip() or "127.0.0.1"
+    try:
+        port = int(port_s.strip())
+    except ValueError:
+        return None
+    if not (1 <= port <= 65535):
+        return None
+    return host, port
+
+
+# 可选：host:port，本地 TCP 每连接读一行 JSON 后经当前 NapCat WS 发送（便于脚本 echo | nc）
+_ws_cmd_tcp_raw = (os.getenv("WS_CMD_TCP") or "").strip()
+WS_CMD_TCP_ADDR: tuple[str, int] | None = _parse_ws_cmd_tcp_bind(_ws_cmd_tcp_raw)
+
+# 无 TTY / 服务进程时可设为 0：关闭从 stdin 读行发送
+WS_STDIN_CMD = (os.getenv("WS_STDIN_CMD") or "1").strip().lower() not in (
+    "0",
+    "false",
+    "no",
+    "off",
+)

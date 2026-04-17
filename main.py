@@ -1,9 +1,22 @@
 import asyncio
 import json
+
+from websockets.asyncio.client import connect
+
+from config import (
+    BOT_TOKEN,
+    NAPCAT_WS_URL,
+    PROACTIVE_GROUP_IDS,
+    WS_CMD_TCP_ADDR,
+    WS_STDIN_CMD,
+)
 from src.handler.dispatcher import handle_event
 from src.scheduler.broadcast import proactive_scheduler_loop
-from websockets.asyncio.client import connect
-from config import BOT_TOKEN, NAPCAT_WS_URL, PROACTIVE_GROUP_IDS
+from src.ws_cmd_inject import (
+    register_napcat_client_ws,
+    serve_tcp_napcat_api_inject,
+    stdin_napcat_api_inject_loop,
+)
 
 
 async def connect_to_napcat():
@@ -17,6 +30,23 @@ async def connect_to_napcat():
         try:
             async with connect(url, additional_headers=headers) as websocket:
                 print(f"已连接到 NapCat: {NAPCAT_WS_URL}")
+                register_napcat_client_ws(websocket)
+                inject_tasks: list[asyncio.Task] = []
+                if WS_STDIN_CMD:
+                    inject_tasks.append(
+                        asyncio.create_task(
+                            stdin_napcat_api_inject_loop(),
+                            name="stdin-napcat-ws-cmd",
+                        )
+                    )
+                if WS_CMD_TCP_ADDR:
+                    host, port = WS_CMD_TCP_ADDR
+                    inject_tasks.append(
+                        asyncio.create_task(
+                            serve_tcp_napcat_api_inject(host, port),
+                            name="tcp-napcat-ws-cmd",
+                        )
+                    )
                 sched_task = asyncio.create_task(proactive_scheduler_loop(websocket))
                 try:
                     async for message in websocket:
@@ -28,6 +58,14 @@ async def connect_to_napcat():
                         except Exception as e:
                             print(f"处理事件时出错: {e}")
                 finally:
+                    for t in inject_tasks:
+                        t.cancel()
+                    for t in inject_tasks:
+                        try:
+                            await t
+                        except asyncio.CancelledError:
+                            pass
+                    register_napcat_client_ws(None)
                     sched_task.cancel()
                     try:
                         await sched_task
